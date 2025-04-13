@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Injectable LLM Honeypot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: auto;
+      padding: 2rem;
+      background-color: #f8f8f8;
+    }
+    textarea, input {
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 0.25rem;
+      font-size: 1rem;
+    }
+    button {
+      padding: 0.75rem 1.5rem;
+      background-color: #222;
+      color: white;
+      border: none;
+      border-radius: 0.25rem;
+      cursor: pointer;
+    }
+    #response {
+      margin-top: 2rem;
+      white-space: pre-wrap;
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 1rem;
+      border-radius: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Injectable: Insecure AI Honeypot</h1>
+  <form id="chatForm">
+    <label for="system">System Prompt</label>
+    <textarea id="system" name="system" rows="4" placeholder="You are a helpful assistant."></textarea>
+
+    <label for="prompt">User Prompt</label>
+    <input type="text" id="prompt" name="prompt" placeholder="Type your message here..." />
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <div id="response"><strong>Response:</strong><br><em>(Waiting for input...)</em></div>
+
+  <script>
+    const form = document.getElementById('chatForm');
+    const responseDiv = document.getElementById('response');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prompt = document.getElementById('prompt').value;
+      const system = document.getElementById('system').value;
+
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, system })
+      });
+
+      const data = await res.json();
+      responseDiv.innerHTML = `<strong>Response:</strong><br>${data.response}`;
+    });
+  </script>
+</body>
+</html>
