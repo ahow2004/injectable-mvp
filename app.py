@@ -1,5 +1,9 @@
 import subprocess
 import sys
+import os
+import requests
+import json
+from datetime import datetime
 
 # === Auto-install missing dependencies ===
 def install(package):
@@ -17,26 +21,35 @@ except ImportError:
     install("llama-cpp-python")
     from llama_cpp import Llama
 
-import json
-import os
-from datetime import datetime
-from llama_cpp import Llama
-import json
-import os
-from datetime import datetime
-
-app = Flask(__name__)
-
-# === Load your model (.gguf) ===
-MODEL_PATH = "models/mistral-7b-instruct-v0.1.Q4_K_M.gguf"  # <-- replace with your model filename
-llm = Llama(model_path=MODEL_PATH, n_ctx=2048, n_threads=4)
-
-# === Logs ===
+# === Constants ===
+MODEL_URL = "https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF/resolve/main/mistral-7b-instruct-v0.1.Q4_K_M.gguf"
+MODEL_PATH = "models/mistral-7b-instruct-v0.1.Q4_K_M.gguf"
 LOG_DIR = "logs"
-os.makedirs(LOG_DIR, exist_ok=True)
 LOG_FILE = os.path.join(LOG_DIR, "chatlog.jsonl")
 
-# === Flask routes ===
+# === Auto-download model if missing ===
+def download_model():
+    if not os.path.exists("models"):
+        os.makedirs("models")
+    if not os.path.isfile(MODEL_PATH):
+        print("Model not found. Downloading from Hugging Face...")
+        with requests.get(MODEL_URL, stream=True) as r:
+            r.raise_for_status()
+            with open(MODEL_PATH, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        print("Model downloaded successfully.")
+
+download_model()
+
+# === Initialize Flask + Load LLM ===
+app = Flask(__name__)
+llm = Llama(model_path=MODEL_PATH, n_ctx=2048, n_threads=4)
+
+# === Ensure log folder ===
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# === Routes ===
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -47,7 +60,6 @@ def chat():
     system_prompt = request.json.get("system")
 
     full_prompt = f"{system_prompt}\nUser: {user_prompt}\nAI:"
-    
     response = llm(full_prompt, max_tokens=300, stop=["User:", "AI:"], echo=False)
     answer = response["choices"][0]["text"].strip()
 
